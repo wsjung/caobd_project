@@ -49,7 +49,11 @@ function ready(error, dataGeo, data) {
 
   // Create a color scale
   var allfreq = d3.map(data, function(d){return(d.freq)}).keys()
-	console.log(allfreq)
+	var minfreq = Math.min(...allfreq)
+	var maxfreq = Math.max(...allfreq)
+	var tmp = allfreq;
+	tmp.sort((a, b) => a - b);
+	var medianfreq = tmp[allfreq.length/2] // 92
   var color = d3.scaleOrdinal()
     .domain(d3.range(Math.min(allfreq), Math.max(allfreq)))
     .range(d3.schemeTableau10);
@@ -58,7 +62,7 @@ function ready(error, dataGeo, data) {
   var valueExtent = d3.extent(data, function(d) { return +d.freq; })
   var size = d3.scaleSqrt()
     .domain(valueExtent)  // What's in the data
-    .range([ 3, 50])  // Size in pixel
+    .range([ 2, 40])  // Size in pixel
 
   // Draw the map
   svg_map.append("g")
@@ -105,12 +109,22 @@ function ready(error, dataGeo, data) {
     .on("mousemove", mousemove) 
 		.on("mouseleave", mouseleave) 
 
+	// ADD TITLE //
+	svg_map
+		.append("text")
+			.style("fill", "black")
+			.attr("text-anchor", "middle")
+			.attr("x", width/2)
+			.attr("y", 20)
+			.html("Wine review counts")
+			.style("font-size", 20)
+
 	// --------------- //
   // ADD LEGEND //
   // --------------- //
 
   // Add legend: circles
-  var valuesToShow = [10,10000,60000]
+  var valuesToShow = [minfreq,Math.round((minfreq+maxfreq)/2),maxfreq]
   var xCircle = 50
   var xLabel = 125
   svg_map

@@ -15,7 +15,7 @@
 var svg_map = d3.select("#div_map")
 	.append("svg")
 		.attr("id", "my_dataviz")
-		.attr("width", 600)
+		.attr("width", 650)
 		.attr("height", 350),
 	width = +svg_map.attr("width"),
 	height = +svg_map.attr("height");
@@ -42,22 +42,26 @@ var projection = d3.geoMercator()
 
 d3.queue()
   .defer(d3.json, "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")  // World shape
-  .defer(d3.csv, "https://raw.githubusercontent.com/wsjung/caobd_project/master/wine-freq-loc.csv") // Position of circles
+  .defer(d3.csv, "https://raw.githubusercontent.com/wsjung/caobd_project/master/wine-price-loc.csv") // Position of circles
   .await(ready);
 
 function ready(error, dataGeo, data) {
 
   // Create a color scale
-  var allContinent = d3.map(data, function(d){return(d.country)}).keys()
+  var allprices = d3.map(data, function(d){return(d.prices)}).keys().map(Number)
+	var minprices = Math.min(...allprices)
+	var maxprices = parseFloat(Math.round(Math.max(...allprices)*100)) / 100
+	console.log(allprices)
+	console.log(minprices, maxprices)
   var color = d3.scaleOrdinal()
-    .domain(allContinent)
-    .range(d3.schemePaired);
+    .domain(d3.range(minprices, maxprices))
+    .range(d3.schemeTableau10);
 
   // Add a scale for bubble size
-  var valueExtent = d3.extent(data, function(d) { return +d.freq; })
+  var valueExtent = d3.extent(data, function(d) { return +d.prices; })
   var size = d3.scaleSqrt()
     .domain(valueExtent)  // What's in the data
-    .range([ 3, 50])  // Size in pixel
+    .range([ 3, 30])  // Size in pixel
 
   // Draw the map
   svg_map.append("g")
@@ -77,7 +81,7 @@ function ready(error, dataGeo, data) {
 		tooltip.style("opacity", 1)
 	}
 	var mousemove = function(d){
-		tooltip.html("<p>" + d.country + "<br>" + "freq: " + d.freq + "</p>")
+		tooltip.html("<p>" + d.country + "<br>" + "avg price: $" + (parseFloat(Math.round(d.prices * 100)) / 100).toFixed(2) + "</p>")
 		tooltip.style("left", (event.pageX) + "px")
 		tooltip.style("top", (event.pageY) + "px")
 	}
@@ -89,13 +93,13 @@ function ready(error, dataGeo, data) {
   // Add circles:
   svg_map
     .selectAll("myCircles")
-    .data(data.sort(function(a,b) { return +b.freq - +a.freq }).filter(function(d,i){ return i<1000 }))
+    .data(data.sort(function(a,b) { return +b.prices - +a.prices }).filter(function(d,i){ return i<1000 }))
     .enter()
     .append("circle")
 			.attr("id", function(d){ return d.country })
       .attr("cx", function(d){ return projection([+d.long, +d.lat])[0] })
       .attr("cy", function(d){ return projection([+d.long, +d.lat])[1] })
-      .attr("r", function(d){ return size(+d.freq) })
+      .attr("r", function(d){ return size(+d.prices) })
       .style("fill", function(d){ return color(d.country) })
       .attr("stroke", function(d){ if(d.n>2000){return "black"}else{return "none"}  })
       .attr("stroke-width", 1)
@@ -109,7 +113,7 @@ function ready(error, dataGeo, data) {
   // --------------- //
 
   // Add legend: circles
-  var valuesToShow = [10,10000,60000]
+  var valuesToShow = [minprices,(minprices+maxprices)/2,maxprices]
   var xCircle = 50
   var xLabel = 125
   svg_map
