@@ -42,26 +42,55 @@ var projection = d3.geoMercator()
 
 d3.queue()
   .defer(d3.json, "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")  // World shape
-  .defer(d3.csv, "https://raw.githubusercontent.com/wsjung/caobd_project/master/wine-price-loc.csv") // Position of circles
+  .defer(d3.csv, "https://raw.githubusercontent.com/wsjung/caobd_project/master/wine-aggregate-loc.csv") // Position of circles
   .await(ready);
 
 function ready(error, dataGeo, data) {
 
-  // Create a color scale
+   // FREQUENCY COLOR SCALE //
+  var allfreq = d3.map(data, function(d){return(d.freq)}).keys()
+	var minfreq = Math.min(...allfreq)
+	var maxfreq = Math.max(...allfreq)
+	var tmp = allfreq;
+	tmp.sort((a, b) => a - b);
+	var medianfreq = tmp[allfreq.length/2] // 92
+  var freq_color = d3.scaleOrdinal()
+    .domain(d3.range(minfreq, maxfreq))
+    .range(d3.schemeTableau10);
+            
+	// PRICES COLOR SCALE //
   var allprices = d3.map(data, function(d){return(d.prices)}).keys().map(Number)
 	var minprices = Math.min(...allprices)
-	var maxprices = parseFloat(Math.round(Math.max(...allprices)*100)) / 100
-	console.log(allprices)
-	console.log(minprices, maxprices)
-  var color = d3.scaleOrdinal()
+	var maxprices = Math.max(...allprices)
+	var prices_color = d3.scaleOrdinal()
     .domain(d3.range(minprices, maxprices))
     .range(d3.schemeTableau10);
 
-  // Add a scale for bubble size
-  var valueExtent = d3.extent(data, function(d) { return +d.prices; })
-  var size = d3.scaleSqrt()
-    .domain(valueExtent)  // What's in the data
+	// POINTS COLOR SCALE //
+	var allpoints = d3.map(data, function(d){return(d.points)}).keys().map(Number)
+	var minpoints = Math.min(...allpoints)
+	var maxpoints = Math.max(...allpoints) 
+  var points_color = d3.scaleOrdinal()
+    .domain(d3.range(minpoints, maxpoints))
+    .range(d3.schemeTableau10);
+
+
+  // PRICES BUBBLE SIZE SCALE //
+  var prices_valueExtent = d3.extent(data, function(d) { return +d.prices; })
+  var prices_size = d3.scaleSqrt()
+    .domain(prices_valueExtent)  // What's in the data
     .range([ 3, 30])  // Size in pixel
+	// FREQ BUBBLE SIZE SCALE //
+  var freq_valueExtent = d3.extent(data, function(d) { return +d.freq; })
+  var freq_size = d3.scaleSqrt()
+    .domain(freq_valueExtent)  // What's in the data
+    .range([ 2, 40])  // Size in pixel
+	// POINTS BUBBLE SIZE SCALE //
+	var points_valueExtent = d3.extent(data, function(d) { return +d.points; })
+  var points_size = d3.scaleSqrt()
+    .domain(points_valueExtent)  // What's in the data
+    .range([ 3, 50])  // Size in pixel
+
 
   // Draw the map
   svg_map.append("g")
@@ -99,8 +128,8 @@ function ready(error, dataGeo, data) {
 			.attr("id", function(d){ return d.country })
       .attr("cx", function(d){ return projection([+d.long, +d.lat])[0] })
       .attr("cy", function(d){ return projection([+d.long, +d.lat])[1] })
-      .attr("r", function(d){ return size(+d.prices) })
-      .style("fill", function(d){ return color(d.country) })
+      .attr("r", function(d){ return prices_size(+d.prices) })
+      .style("fill", function(d){ return prices_color(d.prices) })
       .attr("stroke", function(d){ if(d.n>2000){return "black"}else{return "none"}  })
       .attr("stroke-width", 1)
       .attr("fill-opacity", .4)
